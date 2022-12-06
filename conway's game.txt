@@ -1,0 +1,613 @@
+#ifdef __APPLE__
+#include <GLUT/glut.h>
+#else
+#include <GL/glut.h>
+#endif
+#include <math.h>
+#include <stdlib.h>
+#include<stdio.h>
+#include<conio.h>
+
+float phyWidth = 600, phyHeight = 600;
+float logWidth = 100, logHeight = 100;
+int mouseXX, mouseYY;
+int status = 0;
+float centerX = logWidth/2, centerY = logHeight/2;
+int sqWid = 20;
+int sqHi = 10;
+bool sqUp = true;
+bool sqRight = true;
+int sqDeltaY1 = 0,sqDeltaY2 = 0,sqDeltaY3 = 0;
+int sqDeltaX = 0;
+int maxY1 = 90,maxY2 = 50,maxY3 = 25;
+int maxX = 30;
+int alphaX = 0, alphaY = 0;
+int mouseX = centerX, mouseY = centerY;
+float r = 1.0, g = 0.0, b = 0.0;
+int cy1=15,cy2=50,cy3=85;
+int cy11=25,cy22=40,cy33=55;
+int a1 = rand()%100, a2 = rand()%100, a3 = rand()%100;
+int op1 = rand()%4, op2 = rand()%4, op3 = rand()%4;
+int b1 = rand()%100, b2 = rand()%100, b3 = rand()%100;
+int ans = 0;
+int score = 0;
+bool ans1 = false, ans2 = false, ans3 = false, neg = false;
+int timeSinceStart;
+float rb = 1.0,gb=0.0,bb=0.0;
+bool fr = true, fg = false, fb = false;
+float colorSpeed = 0.01;
+bool addScore = true, highRefresh = true;
+FILE *fptr;
+int highScores[5] = {0},pos;
+char *fileName = "scoresBoard.txt";
+int keypresses = 0;
+
+struct scores{
+    int data;
+    scores *next;
+}*p,*tmp,*tmp1;
+
+bool delete_beg(){
+	tmp=p;
+	if(p==NULL){
+        return false;
+	}
+	else
+	{
+		p=p->next;
+		delete tmp;
+		return true;
+	}
+
+ }
+
+void insert_end(int ele){
+	  tmp=p;
+	  tmp1=(struct scores*)malloc(sizeof(struct scores));
+	  tmp1->data=ele;
+	  tmp1->next=NULL;
+	  if(p==NULL)
+		p=tmp1;
+	  else
+		{
+			while(tmp->next!=NULL)
+				tmp=tmp->next;
+		 	tmp->next=tmp1;
+		 }
+ }
+
+ void displayScores(){
+	tmp=p;
+ 	while(tmp!=NULL)
+		{printf("\n %d",tmp->data);
+	 	tmp=tmp->next;
+		}
+		printf("\n");
+}
+
+void init2D(float r, float g, float b){
+
+    glClearColor(r,g,b,0);
+    glMatrixMode(GL_PROJECTION);
+    gluOrtho2D(0.0,logWidth,0.0,logHeight);
+
+}
+
+void Timer(int value) {
+
+glutTimerFunc(50, Timer, value);
+glutPostRedisplay();
+
+}
+
+void printSome(int x, int y, int a, int op, int b){
+    glColor3f(1.0,1.0,1.0);
+    glRasterPos2d(x,y);
+    char a1,a2;
+    char b1,b2;
+    if(a>9){
+        a1 = a%10 + 48;
+        a /= 10 ;
+        a2 = a%10 + 48;
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18,a2);
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18,a1);
+    }
+    else{
+        a1 = a+48;
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18,a1);
+    }
+    if(op == 0){
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18,'/');
+    }
+    else if(op == 1){
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18,'x');
+    }
+    else if(op == 2){
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18,'+');
+    }
+    else if(op == 3){
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18,'-');
+    }
+    if(b>9){
+        b1 = b%10 + 48;
+        b /= 10;
+        b2 = b%10 + 48;
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18,b2);
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18,b1);
+    }
+    else{
+        b1 = b+48;
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18,b1);
+    }
+
+    glFlush();
+}
+
+void printReady(char *str, int x, int y){
+    glColor3f(0.0,0.0,0.0);
+    glRasterPos2d(x,y);
+    int n = strlen(str);
+    for(int i = 0; i < n; i++){
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18,str[i]);
+    }
+    glFlush();
+}
+
+void drawSquares(){
+    glColor3f(0.7f, 0.7f, 0.7f);
+    glBegin(GL_POLYGON);
+    glVertex2f(centerX-sqWid, cy11-sqWid/6);
+    glVertex2f(centerX+sqWid, cy11-sqWid/6);
+    glVertex2f(centerX+sqWid, cy11+sqWid/6);
+    glVertex2f(centerX-sqWid, cy11+sqWid/6);
+    glEnd();
+    printReady("QUIT",centerX-sqWid/6,cy11-1);
+
+    glBegin(GL_POLYGON);
+    glColor3f(0.7f, 0.7f, 0.7f);
+    glVertex2f(centerX-sqWid, cy22-sqWid/6);
+    glVertex2f(centerX+sqWid, cy22-sqWid/6);
+    glColor3f(0.3f, 0.3f, 0.7f);
+    glVertex2f(centerX+sqWid, cy22+sqWid/6);
+    glVertex2f(centerX-sqWid, cy22+sqWid/6);
+    glEnd();
+    printReady("HIGHSCORES",centerX-sqWid/2,cy22-1);
+
+    glBegin(GL_POLYGON);
+    glColor3f(0.0f, 0.0f, 0.7f);
+    glVertex2f(centerX-sqWid, cy33-sqWid/6);
+    glVertex2f(centerX+sqWid, cy33-sqWid/6);
+    glVertex2f(centerX+sqWid, cy33+sqWid/6);
+    glVertex2f(centerX-sqWid, cy33+sqWid/6);
+    glEnd();
+    printReady("PLAY",centerX-sqWid/6,cy33-1);
+}
+
+void backGround(){
+    glBegin(GL_POLYGON);
+    glColor3f(0.0f, 0.0f, 0.7f);
+    glVertex2f(0, 100);
+    glVertex2f(100, 100);
+    glColor3f(0.7f, 0.7f, 0.7f);
+    glVertex2f(100, 0);
+    glVertex2f(0, 0);
+    glEnd();
+}
+
+void backGround2(){
+
+    if(fr&&!fg&&!fb){
+        gb+= colorSpeed;
+        if(gb>=1.0){
+            fg = true;
+        }
+    }
+    if(fr&&fg&&!fb){
+        rb-= colorSpeed;
+        if(rb<=0.0){
+            fr = false;
+        }
+    }
+    if(!fr&&fg&&!fb){
+        bb+= colorSpeed;
+        if(bb>=1.0){
+            fb = true;
+        }
+    }
+    if(!fr&&fg&&fb){
+        gb-= colorSpeed;
+        if(gb<=0.0){
+            fg = false;
+        }
+    }
+    if(!fr&&!fg&&fb){
+        rb += colorSpeed;
+        if(rb>=1.0){
+            fr = true;
+        }
+    }
+    if(fr&&!fg&&fb){
+        bb-= colorSpeed;
+        if(bb<=0.0){
+            fb=false;
+        }
+    }
+    glBegin(GL_POLYGON);
+    glColor3f(rb, gb, bb);
+    glVertex2f(0, 100);
+    glVertex2f(100, 100);
+    glColor3f(rb, gb, bb);
+    glVertex2f(100, 0);
+    glVertex2f(0, 0);
+    glEnd();
+}
+
+void mouseClick(int btn, int state, int x, int y){
+    if(btn==GLUT_LEFT_BUTTON && state==GLUT_DOWN){
+        mouseXX = x;
+        mouseXX=0.5+1.0*mouseXX*logWidth/phyWidth;
+        mouseYY = phyHeight - y;
+        mouseYY=0.5+1.0*mouseYY*logHeight/phyHeight;
+    if( mouseXX>=(centerX-sqWid) && mouseXX<=(centerX+sqWid) && mouseYY >=(cy11-sqWid/6) && mouseYY <=(cy11+sqWid/6) && status == 0){status=1;}
+    if( mouseXX>=(centerX-sqWid) && mouseXX<=(centerX+sqWid) && mouseYY >=(cy22-sqWid/6) && mouseYY <=(cy22+sqWid/6) && status == 0){
+            status=2;
+            highRefresh = true;
+    }
+    if( mouseXX>=(centerX-sqWid) && mouseXX<=(centerX+sqWid) && mouseYY >=(cy33-sqWid/6) && mouseYY <=(cy33+sqWid/6) && status == 0){
+            status=3;
+            timeSinceStart = glutGet(GLUT_ELAPSED_TIME);
+            addScore = true;
+    }
+    }
+    if(btn==GLUT_RIGHT_BUTTON && state==GLUT_DOWN){
+        status = 0;
+        score = 0;
+        ans1 = false;
+        ans2 = false;
+        ans3 = false;
+        neg = false;
+        ans = 0;
+        keypresses = 0;
+    }
+    glutPostRedisplay();
+}
+
+void printScore(int s,int x,int y){
+    glRasterPos2d(x,y);
+    if(s>999){
+        int sc1,sc2,sc3,sc4;
+        sc1 = s%10 + 48;
+        s /= 10;
+        sc2 = s%10 + 48;
+        s /= 10;
+        sc3 = s%10 + 48;
+        s /= 10;
+        sc4 = s%10 + 48;
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18,sc4);
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18,sc3);
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18,sc2);
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18,sc1);
+    }
+    else if(s>99){
+        int sc1,sc2,sc3;
+        sc1 = s%10 + 48;
+        s /= 10;
+        sc2 = s%10 + 48;
+        s /= 10;
+        sc3 = s%10 + 48;
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18,sc3);
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18,sc2);
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18,sc1);
+    }
+    else if(s>9){
+        int sc1,sc2;
+        sc1 = s%10 + 48;
+        s /= 10;
+        sc2 = s%10 + 48;
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18,sc2);
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18,sc1);
+    }
+    else{
+        int sc1 = s+48;
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18,sc1);
+    }
+}
+
+void middleBox(){
+
+    glColor3f(0.0f, 0.0f, 0.7f);
+
+    glBegin(GL_POLYGON);
+    if(!ans1)glColor3f(0.0f, 0.0f, 0.7f);
+    else glColor3f(0.0f, 0.7f, 0.3f);
+    glVertex2f(centerX-sqWid/2, cy1-sqHi/2+sqDeltaY1);
+    glVertex2f(centerX+sqWid/2, cy1-sqHi/2+sqDeltaY1);
+    glVertex2f(centerX+sqWid/2, cy1+sqHi/2+sqDeltaY1);
+    glVertex2f(centerX-sqWid/2, cy1+sqHi/2+sqDeltaY1);
+    glEnd();
+    glBegin(GL_POLYGON);
+
+    if(!ans2)glColor3f(0.0f, 0.0f, 0.7f);
+    else glColor3f(0.0f, 0.7f, 0.3f);
+    glVertex2f(centerX-sqWid/2, cy2-sqHi/2+sqDeltaY2);
+    glVertex2f(centerX+sqWid/2, cy2-sqHi/2+sqDeltaY2);
+    glVertex2f(centerX+sqWid/2, cy2+sqHi/2+sqDeltaY2);
+    glVertex2f(centerX-sqWid/2, cy2+sqHi/2+sqDeltaY2);
+    glEnd();
+    glBegin(GL_POLYGON);
+
+    if(!ans3)glColor3f(0.0f, 0.0f, 0.7f);
+    else glColor3f(0.0f, 0.7f, 0.3f);
+    glVertex2f(centerX-sqWid/2, cy3-sqHi/2+sqDeltaY3);
+    glVertex2f(centerX+sqWid/2, cy3-sqHi/2+sqDeltaY3);
+    glVertex2f(centerX+sqWid/2, cy3+sqHi/2+sqDeltaY3);
+    glVertex2f(centerX-sqWid/2, cy3+sqHi/2+sqDeltaY3);
+    glEnd();
+
+    if (cy1+sqHi/2+sqDeltaY1>logHeight+sqHi){
+        sqDeltaY1=(cy1+sqHi/2)*-1;
+        a1 = rand()%100;
+        op1 = rand()%4;
+        b1 = rand()%99 +1;
+        ans1 = false;
+    }
+    if (cy2+sqHi/2+sqDeltaY2>logHeight+sqHi){
+        sqDeltaY2=(cy2+sqHi/2)*-1;
+        a2 = rand()%100;
+        op2 = rand()%4;
+        b2 = rand()%99 +1;
+        ans2 = false;
+    }
+    if (cy3+sqHi/2+sqDeltaY3>logHeight+sqHi){
+        sqDeltaY3=(cy3+sqHi/2)*-1;
+        a3 = rand()%100;
+        op3 = rand()%4;
+        b3 = rand()%99 +1;
+        ans3 = false;
+    }
+    sqDeltaY1++;
+    sqDeltaY2++;
+    sqDeltaY3++;
+}
+
+int mathOp(int a, int op, int b){
+    if(op == 0){
+        return a/b;
+    }
+    else if(op == 1){
+        return a*b;
+    }
+    else if(op == 2){
+        return a+b;
+    }
+    else if(op == 3){
+        return a-b;
+    }
+}
+
+void Keyboard(unsigned char key, int x, int y) {
+    //printf("%d",key);
+    if(key == 13){
+       if(ans == mathOp(a1,op1,b1) && !ans1){
+            score++;
+            ans1 = true;
+       }
+       if(ans == mathOp(a2,op2,b2) && !ans2){
+            score++;
+            ans2 = true;
+       }
+       if(ans == mathOp(a3,op3,b3) && !ans3){
+            score++;
+            ans3 = true;
+       }
+       ans = 0;
+       keypresses = 0;
+    }
+    else if(key>='0'&&key<='9'&&keypresses<4){
+        ans *= 10;
+        if(neg)ans-= key-48;
+        else ans += key-48;
+        keypresses++;
+    }
+    else if(key == 8){
+        ans/=10;
+        if(keypresses>0)keypresses--;
+    }
+    else if(key == '-'){
+        ans*=-1;
+        neg = !neg;
+    }
+    glutPostRedisplay();
+}
+
+void Keyboard2(int key, int x, int y){
+    if(key == GLUT_KEY_F1){
+        timeSinceStart = glutGet(GLUT_ELAPSED_TIME);
+        score = 0;
+        ans1 = false;
+        ans2 = false;
+        ans3 = false;
+        neg = false;
+        ans = 0;
+        keypresses = 0;
+    }
+    if(key == GLUT_KEY_F2){
+        status = 0;
+        score = 0;
+        ans1 = false;
+        ans2 = false;
+        ans3 = false;
+        neg = false;
+        ans = 0;
+        keypresses = 0;
+    }
+}
+
+void reaf(){
+    if ((fptr = fopen(fileName,"r")) == NULL){
+                printf("file created");
+                fclose(fptr);
+                fptr = fopen(fileName,"w");
+                fclose(fptr);
+                return;
+            }
+            int hCnt = 0,num,position = 1;
+            while(!feof(fptr)){
+                if(hCnt < 5){
+                    fscanf(fptr,"%d", &num);
+                    printf("%d. %d\n",position , num);
+                    insert_end(num);
+                    highScores[hCnt] = num;
+                    hCnt++;
+                }
+                else{
+                    fscanf(fptr,"%d", &num);
+                    printf("%d. %d\n",position , num);
+                    insert_end(num);
+                }
+                position++;
+            }
+
+            printf("\n");
+            displayScores();
+            fclose(fptr);
+}
+
+void display(void){
+
+    glClear(GL_COLOR_BUFFER_BIT);
+    if(status == 0){
+        backGround();
+        printReady("",centerX-sqWid/2,75);
+        drawSquares();
+    }
+    else if(status == 3){
+        int deltaTime = glutGet(GLUT_ELAPSED_TIME)-timeSinceStart;
+        deltaTime/=1000;
+        if( deltaTime >= 60){
+            printf("done\n");
+            status = 4;
+            pos = 1;
+        }
+        backGround();
+        middleBox();
+        printSome(centerX-sqWid/4,cy1+sqDeltaY1-1,a1,op1,b1);
+        printSome(centerX-sqWid/4,cy2+sqDeltaY2-1,a2,op2,b2);
+        printSome(centerX-sqWid/4,cy3+sqDeltaY3-1,a3,op3,b3);
+        printReady("Score:",10,90);
+        printScore(score,20,90);
+        printScore(deltaTime,80,90);
+        printScore(abs(ans),80,45);
+        if(ans<0){printReady("-",78,45);}
+    }
+    else if(status == 2){
+        backGround2();
+        while(delete_beg());
+        if(highRefresh){
+            reaf();
+            highRefresh = false;
+        }
+
+        printReady("HIGHSCORES",40,70);
+        printReady("1. ",45,65);
+        printScore(highScores[0],50,65);
+        printReady("2. ",45,60);
+        printScore(highScores[1],50,60);
+        printReady("3. ",45,55);
+        printScore(highScores[2],50,55);
+        printReady("4. ",45,50);
+        printScore(highScores[3],50,50);
+        printReady("5. ",45,45);
+        printScore(highScores[4],50,45);
+    }
+    else if(status == 1){
+        exit(1);
+    }
+    else if(status == 4){
+        backGround2();
+        if(score == 0){
+            printReady("WOW YOU SUCK...",30,65);
+            printReady("go back to school ",30,60);
+            printReady("you didn't even score ",30,55);
+        }
+        else if(score<5){
+            printReady("Atleast you tried",30,65);
+            printReady("you only scored ",30,60);
+            printScore(score,55,60);
+        }
+        else if(score < 10){
+            printReady("GREAT JOB YOU",30,65);
+            printReady("YOU ARE SMARTER THAN A TODDLER",30,60);
+            printReady("you only scored ",30,55);
+            printScore(score,55,55);
+        }
+        else{
+            printReady("GREAT JOB YOU",30,65);
+            printReady("you're score was",30,60);
+            printScore(score,55,60);
+        }
+        if (addScore){
+            while(delete_beg());
+            reaf();
+            fptr = fopen(fileName,"w");
+           if(fptr == NULL)
+           {
+              printf("Error!");
+              exit(1);
+           }
+            tmp=p;
+            while(tmp!=NULL)
+                {
+                    if(score>tmp->data&&addScore){
+                        fprintf(fptr,"\n%d",score);
+                        fprintf(fptr,"\n%d",tmp->data);
+                        tmp=tmp->next;
+                        addScore = false;
+                    }
+                    else {
+                        fprintf(fptr,"\n%d",tmp->data);
+                        tmp=tmp->next;
+                    }
+                    if(addScore)pos++;
+                }
+            if(addScore){
+                fprintf(fptr,"\n%d",score);
+                addScore = false;
+            }
+           fclose(fptr);
+            while(delete_beg());
+            reaf();
+        }
+        printReady("YOUR RANK IS",30,40);
+        printScore(pos,55,40);
+        if(pos%10==1&&pos!=11)printReady("st",58,40);
+        else if(pos%10==2&&pos!=12)printReady("nd",58,40);
+        else if(pos%10==3&&pos!=13)printReady("rd",58,40);
+        else printReady("th",58,40);
+    }
+
+    glutSwapBuffers();
+    glFlush();
+}
+
+int main(int argc,char *argv[]){
+    p=NULL;
+    reaf();
+    displayScores();
+    fclose(fptr);
+    for(int i = 0; i < 5; i++){
+        printf("%d. %d\n",i+1,highScores[i]);
+    }
+    glutInit(&argc,argv);
+    glutInitDisplayMode (GLUT_RGB | GLUT_DOUBLE );
+    glutInitWindowSize (phyWidth, phyHeight);
+    glutInitWindowPosition (100, 100);
+    glutCreateWindow ("project");
+    init2D(0.0,0.0,0.0);
+    glutDisplayFunc(display);
+    glutKeyboardFunc(Keyboard);
+    glutSpecialFunc(Keyboard2);
+    glutMouseFunc(mouseClick);
+    Timer(0);
+    glutMainLoop();
+}
